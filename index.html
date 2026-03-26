@@ -3,510 +3,684 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arc AI Agent - Neural Interface</title>
+    <title>Arc Neural Agent</title>
+    <!-- Robot Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23000'/><rect x='16' y='20' width='32' height='28' rx='4' fill='%2300ff00' opacity='.9'/><rect x='22' y='26' width='8' height='8' rx='2' fill='%23000'/><rect x='34' y='26' width='8' height='8' rx='2' fill='%23000'/><rect x='28' y='36' width='8' height='4' rx='1' fill='%23000'/><rect x='29' y='12' width='6' height='10' rx='3' fill='%2300ff00'/><rect x='8' y='26' width='8' height='14' rx='3' fill='%2300ff00' opacity='.7'/><rect x='48' y='26' width='8' height='14' rx='3' fill='%2300ff00' opacity='.7'/><rect x='22' y='48' width='8' height='10' rx='2' fill='%2300ff00' opacity='.7'/><rect x='34' y='48' width='8' height='10' rx='2' fill='%2300ff00' opacity='.7'/></svg>">
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Courier New', monospace;
-            background: #000;
-            color: #0f0;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
-        body::before {
-            content: "";
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: repeating-linear-gradient(0deg, rgba(0,255,0,0.03) 0px, transparent 1px, transparent 2px, rgba(0,255,0,0.03) 3px);
-            pointer-events: none; z-index: 1000;
-            animation: scanline 8s linear infinite;
-        }
-        @keyframes scanline { 0% { transform: translateY(0); } 100% { transform: translateY(10px); } }
-        .glitch { position: relative; animation: glitch 3s infinite; }
-        @keyframes glitch {
-            0%, 90%, 100% { transform: translate(0); }
-            92% { transform: translate(-2px, 2px); }
-            94% { transform: translate(2px, -2px); }
-            96% { transform: translate(-2px, -2px); }
-            98% { transform: translate(2px, 2px); }
-        }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
-        .neural-header {
-            text-align: center; padding: 40px 20px;
-            border: 2px solid #0f0; margin-bottom: 30px;
-            background: rgba(0,255,0,0.05);
-            box-shadow: 0 0 20px rgba(0,255,0,0.3), inset 0 0 20px rgba(0,255,0,0.1);
-            position: relative;
-        }
-        .neural-header::before, .neural-header::after {
-            content: "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓";
-            display: block; color: #0f0; opacity: 0.3; font-size: 0.6em; letter-spacing: 2px;
-        }
-        h1 { font-size: 3em; text-shadow: 0 0 10px #0f0, 0 0 20px #0f0; margin: 20px 0; letter-spacing: 5px; }
-        .status-line { font-size: 1.2em; color: #0a0; margin: 10px 0; text-shadow: 0 0 5px #0f0; }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Courier New',monospace;background:#000;color:#0f0;overflow-x:hidden;min-height:100vh;}
+        body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;
+            background:repeating-linear-gradient(0deg,rgba(0,255,0,0.03) 0px,transparent 1px,transparent 2px,rgba(0,255,0,0.03) 3px);
+            pointer-events:none;z-index:1000;animation:scanline 8s linear infinite;}
+        @keyframes scanline{0%{transform:translateY(0);}100%{transform:translateY(10px);}}
+        .glitch{animation:glitch 3s infinite;}
+        @keyframes glitch{0%,90%,100%{transform:translate(0);}92%{transform:translate(-2px,2px);}94%{transform:translate(2px,-2px);}96%{transform:translate(-2px,-2px);}98%{transform:translate(2px,2px);}}
+        .container{max-width:1400px;margin:0 auto;padding:20px;position:relative;z-index:1;}
 
-        /* ── CONNECT SCREEN ── */
-        #connectScreen {
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center; min-height: 50vh; gap: 30px;
-        }
-        .connect-box {
-            border: 2px solid #0f0; padding: 40px 60px; text-align: center;
-            background: rgba(0,255,0,0.04);
-            box-shadow: 0 0 30px rgba(0,255,0,0.3);
-        }
-        .connect-box p { color: #0a0; margin-bottom: 30px; font-size: 1.1em; line-height: 1.8; }
-        #connectBtn {
-            font-size: 1.3em; padding: 18px 50px; letter-spacing: 4px;
-            animation: pulse 2s infinite;
-        }
-        .no-metamask-msg {
-            border: 2px solid #f00; padding: 20px 40px; text-align: center;
-            color: #f00; background: rgba(255,0,0,0.07);
-        }
-        .no-metamask-msg a { color: #ff0; }
+        .neural-header{text-align:center;padding:30px 20px;border:2px solid #0f0;margin-bottom:30px;
+            background:rgba(0,255,0,0.05);box-shadow:0 0 20px rgba(0,255,0,0.3),inset 0 0 20px rgba(0,255,0,0.1);}
+        .neural-header::before,.neural-header::after{content:"▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓";
+            display:block;color:#0f0;opacity:0.3;font-size:0.55em;letter-spacing:2px;}
+        h1{font-size:2.8em;text-shadow:0 0 10px #0f0,0 0 20px #0f0;margin:15px 0;letter-spacing:5px;}
+        .status-line{font-size:1.1em;color:#0a0;margin:6px 0;text-shadow:0 0 5px #0f0;}
+        .status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;}
+        .status-dot.online{background:#0f0;box-shadow:0 0 10px #0f0;animation:blink 1s infinite;}
+        .status-dot.offline{background:#f00;box-shadow:0 0 10px #f00;}
+        @keyframes blink{0%,50%,100%{opacity:1;}25%,75%{opacity:0.3;}}
 
-        /* ── SHARED STYLES ── */
-        .terminal {
-            background: #000; border: 2px solid #0f0; padding: 20px; margin: 20px 0;
-            box-shadow: 0 0 20px rgba(0,255,0,0.3); position: relative;
-        }
-        .terminal::before {
-            content: "NEURAL INTERFACE v2.0 - ACTIVE";
-            position: absolute; top: -12px; left: 20px;
-            background: #000; padding: 0 10px; color: #0f0;
-            font-size: 0.8em; text-shadow: 0 0 5px #0f0;
-        }
-        .terminal-output { min-height: 150px; max-height: 400px; overflow-y: auto; margin-bottom: 15px; padding: 10px; background: rgba(0,255,0,0.02); }
-        .terminal-line { margin: 5px 0; animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-        .terminal-line::before { content: "> "; color: #0f0; text-shadow: 0 0 5px #0f0; }
-        .terminal-input-container { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #0f0; padding-top: 15px; }
-        .terminal-input-container::before { content: "$ "; color: #0f0; font-size: 1.2em; text-shadow: 0 0 5px #0f0; }
-        input, textarea {
-            flex: 1; background: #000; border: 1px solid #0f0; color: #0f0;
-            padding: 10px; font-family: 'Courier New', monospace; font-size: 1em;
-            box-shadow: inset 0 0 10px rgba(0,255,0,0.2);
-        }
-        input:focus, textarea:focus { outline: none; box-shadow: inset 0 0 10px rgba(0,255,0,0.4), 0 0 10px rgba(0,255,0,0.3); }
-        input::placeholder, textarea::placeholder { color: #0a0; }
-        button {
-            background: #000; border: 2px solid #0f0; color: #0f0;
-            padding: 12px 25px; font-family: 'Courier New', monospace;
-            font-size: 1em; cursor: pointer; text-transform: uppercase;
-            letter-spacing: 2px; transition: all 0.3s ease;
-            text-shadow: 0 0 5px #0f0; box-shadow: 0 0 10px rgba(0,255,0,0.3);
-        }
-        button:hover:not(:disabled) { background: #0f0; color: #000; box-shadow: 0 0 20px rgba(0,255,0,0.6); text-shadow: none; }
-        button:disabled { opacity: 0.3; cursor: not-allowed; }
-        .neural-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin: 20px 0; }
-        .neural-panel { background: rgba(0,255,0,0.02); border: 2px solid #0f0; padding: 20px; position: relative; box-shadow: 0 0 15px rgba(0,255,0,0.2); }
-        .neural-panel::before { content: attr(data-title); position: absolute; top: -12px; left: 20px; background: #000; padding: 0 10px; color: #0f0; font-size: 0.9em; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 5px #0f0; }
-        .data-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dotted #0f0; margin: 5px 0; }
-        .data-label { color: #0a0; }
-        .data-value { color: #0f0; font-weight: bold; text-shadow: 0 0 3px #0f0; }
-        .metric { text-align: center; padding: 30px; background: rgba(0,255,0,0.05); border: 1px solid #0f0; margin: 10px 0; }
-        .metric-value { font-size: 3em; color: #0f0; text-shadow: 0 0 15px #0f0; font-weight: bold; margin: 10px 0; }
-        .metric-label { color: #0a0; text-transform: uppercase; letter-spacing: 3px; font-size: 0.9em; }
-        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
-        .action-btn { width: 100%; padding: 20px; text-align: center; }
-        .tx-item { padding: 10px; margin: 5px 0; border: 1px solid #0f0; background: rgba(0,255,0,0.02); font-size: 0.9em; }
-        .tx-hash { color: #0a0; word-break: break-all; font-size: 0.85em; }
-        .alert { padding: 15px; margin: 15px 0; border: 2px solid #0f0; background: rgba(0,255,0,0.1); text-align: center; }
-        .alert.error { border-color: #f00; color: #f00; background: rgba(255,0,0,0.1); }
-        .alert.warning { border-color: #ff0; color: #ff0; background: rgba(255,255,0,0.1); }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; padding: 20px; overflow-y: auto; }
-        .modal.active { display: flex; justify-content: center; align-items: center; }
-        .modal-content { background: #000; border: 3px solid #0f0; padding: 30px; max-width: 600px; width: 100%; box-shadow: 0 0 30px rgba(0,255,0,0.5); }
-        .modal-close { float: right; font-size: 1.5em; cursor: pointer; color: #f00; text-shadow: 0 0 5px #f00; }
-        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; animation: blink 1s infinite; }
-        .status-dot.online { background: #0f0; box-shadow: 0 0 10px #0f0; }
-        .status-dot.offline { background: #f00; box-shadow: 0 0 10px #f00; animation: none; }
-        @keyframes blink { 0%, 50%, 100% { opacity: 1; } 25%, 75% { opacity: 0.3; } }
-        @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(0,255,0,0.3); } 50% { opacity: 0.7; box-shadow: 0 0 25px rgba(0,255,0,0.7); } }
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: #000; border: 1px solid #0f0; }
-        ::-webkit-scrollbar-thumb { background: #0f0; box-shadow: 0 0 10px #0f0; }
-        ::-webkit-scrollbar-thumb:hover { background: #0a0; }
-        @media (max-width: 768px) { .neural-grid { grid-template-columns: 1fr; } h1 { font-size: 2em; } .action-grid { grid-template-columns: 1fr; } }
-        .hidden { display: none !important; }
-        .ascii-art { font-size: 0.7em; line-height: 1.2; color: #0a0; text-align: center; margin: 20px 0; white-space: pre; }
+        #connectScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;gap:25px;}
+        .connect-box{border:2px solid #0f0;padding:40px 60px;text-align:center;background:rgba(0,255,0,0.04);
+            box-shadow:0 0 30px rgba(0,255,0,0.3);max-width:520px;width:100%;}
+        .connect-box p{color:#0a0;margin-bottom:25px;font-size:1.05em;line-height:2.2;}
+        #connectBtn{font-size:1.3em;padding:18px 50px;letter-spacing:4px;animation:pulse 2s infinite;width:100%;}
+        @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 10px rgba(0,255,0,0.3);}50%{opacity:.75;box-shadow:0 0 28px rgba(0,255,0,.7);}}
+        .no-meta{border:2px solid #f00;padding:20px 40px;text-align:center;color:#f00;background:rgba(255,0,0,.07);}
+        .no-meta a{color:#ff0;}
+
+        button{background:#000;border:2px solid #0f0;color:#0f0;padding:10px 20px;font-family:'Courier New',monospace;
+            font-size:.92em;cursor:pointer;text-transform:uppercase;letter-spacing:2px;transition:all .25s;
+            text-shadow:0 0 5px #0f0;box-shadow:0 0 10px rgba(0,255,0,.3);}
+        button:hover:not(:disabled){background:#0f0;color:#000;box-shadow:0 0 20px rgba(0,255,0,.6);text-shadow:none;}
+        button:disabled{opacity:.3;cursor:not-allowed;}
+        input,textarea,select{background:#000;border:1px solid #0f0;color:#0f0;padding:10px;
+            font-family:'Courier New',monospace;font-size:.95em;box-shadow:inset 0 0 8px rgba(0,255,0,.12);}
+        input:focus,textarea:focus,select:focus{outline:none;box-shadow:inset 0 0 10px rgba(0,255,0,.4),0 0 10px rgba(0,255,0,.3);}
+        input::placeholder,textarea::placeholder{color:#0a0;}
+
+        .metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:15px;margin:20px 0;}
+        .metric{text-align:center;padding:20px 10px;background:rgba(0,255,0,.05);border:1px solid #0f0;}
+        .metric-value{font-size:2em;color:#0f0;text-shadow:0 0 12px #0f0;font-weight:bold;margin:8px 0;}
+        .metric-label{color:#0a0;text-transform:uppercase;letter-spacing:2px;font-size:.78em;}
+
+        .neural-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px;margin:20px 0;}
+        .neural-panel{background:rgba(0,255,0,.02);border:2px solid #0f0;padding:20px;position:relative;box-shadow:0 0 15px rgba(0,255,0,.15);}
+        .neural-panel::before{content:attr(data-title);position:absolute;top:-12px;left:20px;background:#000;
+            padding:0 10px;color:#0f0;font-size:.82em;text-transform:uppercase;letter-spacing:2px;text-shadow:0 0 5px #0f0;}
+        .data-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dotted rgba(0,255,0,.25);}
+        .data-label{color:#0a0;font-size:.88em;flex-shrink:0;}
+        .data-value{color:#0f0;font-weight:bold;text-shadow:0 0 3px #0f0;word-break:break-all;text-align:right;margin-left:10px;}
+
+        .action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:12px 0;}
+        .action-btn{width:100%;padding:14px 4px;text-align:center;font-size:.8em;line-height:1.8;}
+
+        .terminal{background:#000;border:2px solid #0f0;padding:20px;margin:20px 0;box-shadow:0 0 20px rgba(0,255,0,.3);position:relative;}
+        .terminal::before{content:"NEURAL AI TERMINAL v3.0 — ACTIVE";position:absolute;top:-12px;left:20px;
+            background:#000;padding:0 10px;color:#0f0;font-size:.78em;text-shadow:0 0 5px #0f0;}
+        .terminal-output{min-height:180px;max-height:380px;overflow-y:auto;margin-bottom:12px;padding:10px;background:rgba(0,255,0,.012);}
+        .t-line{margin:3px 0;animation:fadeIn .3s ease-in;font-size:.9em;line-height:1.5;}
+        @keyframes fadeIn{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:translateX(0);}}
+        .t-line::before{content:"> ";color:#0f0;}
+        .t-line.ai::before{content:"🤖 ";color:#0cf;} .t-line.ai{color:#0cf;}
+        .t-line.err::before{content:"✕ ";color:#f55;} .t-line.err{color:#f55;}
+        .t-line.ok::before{content:"✓ ";color:#0f0;} .t-line.ok{color:#aff;}
+        .t-input-row{display:flex;gap:10px;margin-top:12px;border-top:1px solid #0f0;padding-top:12px;}
+        .t-input-row::before{content:"$ ";color:#0f0;font-size:1.2em;text-shadow:0 0 5px #0f0;line-height:2.2;}
+
+        .tx-item{padding:10px;margin:5px 0;border:1px solid rgba(0,255,0,.4);border-left:3px solid #f90;
+            background:rgba(0,255,0,.02);font-size:.87em;animation:fadeIn .4s;}
+        .tx-hash{color:#0a0;word-break:break-all;font-size:.82em;}
+        .tx-link{color:#0cf;text-decoration:none;}
+        .tx-link:hover{text-decoration:underline;}
+
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.96);
+            z-index:2000;padding:20px;overflow-y:auto;}
+        .modal.active{display:flex;justify-content:center;align-items:flex-start;padding-top:50px;}
+        .modal-content{background:#000;border:3px solid #0f0;padding:30px;max-width:600px;width:100%;
+            box-shadow:0 0 30px rgba(0,255,0,.5);position:relative;}
+        .modal-title{color:#0f0;font-size:1.25em;margin-bottom:18px;text-shadow:0 0 8px #0f0;}
+        .modal-close{position:absolute;top:14px;right:18px;font-size:1.4em;cursor:pointer;color:#f00;
+            text-shadow:0 0 5px #f00;background:none;border:none;padding:0;letter-spacing:0;text-transform:none;}
+        .form-group{margin:14px 0;}
+        .form-label{color:#0a0;display:block;margin-bottom:6px;font-size:.88em;}
+        .form-input{width:100%;}
+
+        .alert{padding:12px;margin:10px 0;border:2px solid #0f0;background:rgba(0,255,0,.07);font-size:.88em;line-height:1.6;}
+        .alert.err{border-color:#f00;color:#f00;background:rgba(255,0,0,.07);}
+        .alert.warn{border-color:#ff0;color:#ff0;background:rgba(255,255,0,.07);}
+        .alert.ok{border-color:#0f0;color:#aff;}
+
+        .copy-btn{background:none;border:1px solid #0a0;color:#0a0;padding:2px 8px;font-size:.72em;
+            cursor:pointer;letter-spacing:1px;margin-left:8px;text-shadow:none;box-shadow:none;}
+        .copy-btn:hover{background:#0a0;color:#000;box-shadow:none;}
+
+        ::-webkit-scrollbar{width:8px;} ::-webkit-scrollbar-track{background:#000;border:1px solid #0f0;}
+        ::-webkit-scrollbar-thumb{background:#0f0;} ::-webkit-scrollbar-thumb:hover{background:#0a0;}
+        .hidden{display:none!important;}
+        .ascii-art{font-size:.65em;line-height:1.2;color:#0a0;text-align:center;margin:25px 0;white-space:pre;}
+        @media(max-width:768px){.neural-grid{grid-template-columns:1fr;}.metrics-row{grid-template-columns:1fr 1fr;}
+            h1{font-size:1.8em;}.connect-box{padding:30px 20px;}.action-grid{grid-template-columns:repeat(2,1fr);}}
     </style>
 </head>
 <body>
 <div class="container">
 
-    <!-- Header -->
-    <div class="neural-header glitch">
-        <h1>⚡ ARC NEURAL AGENT ⚡</h1>
-        <div class="status-line">
-            <span class="status-dot offline" id="statusDot"></span>
-            <span id="systemStatus">AWAITING WALLET CONNECTION</span>
-        </div>
-        <div id="walletStatus" class="status-line" style="font-size:0.9em;"></div>
+<!-- HEADER -->
+<div class="neural-header glitch">
+    <h1>⚡ ARC NEURAL AGENT ⚡</h1>
+    <div class="status-line">
+        <span class="status-dot offline" id="statusDot"></span>
+        <span id="systemStatus">AWAITING WALLET CONNECTION</span>
     </div>
+    <div id="walletStatus" class="status-line" style="font-size:.85em;"></div>
+</div>
 
-    <!-- ── CONNECT SCREEN (shown before wallet connected) ── -->
-    <div id="connectScreen">
-        <div id="noMetaMaskMsg" class="no-metamask-msg hidden">
-            ⚠ METAMASK NOT DETECTED<br><br>
-            Install MetaMask to use this interface:<br>
-            <a href="https://metamask.io/download/" target="_blank">→ metamask.io/download</a>
-        </div>
-
-        <div id="connectBox" class="connect-box hidden">
-            <p>
-                NEURAL INTERFACE READY<br>
-                CONNECT YOUR METAMASK WALLET TO BEGIN
-            </p>
-            <button id="connectBtn" onclick="connectWallet()">
-                🦊 CONNECT METAMASK
-            </button>
-            <div id="connectError" class="hidden" style="margin-top:20px; color:#f00; font-size:0.9em;"></div>
-        </div>
+<!-- CONNECT SCREEN -->
+<div id="connectScreen">
+    <div id="noMetaMsg" class="no-meta hidden">
+        ⚠ METAMASK NOT DETECTED<br><br>
+        Install MetaMask to use this interface:<br>
+        <a href="https://metamask.io/download/" target="_blank">→ metamask.io/download</a>
     </div>
-
-    <!-- ── DASHBOARD (hidden until connected) ── -->
-    <div id="dashboard" class="hidden">
-        <div class="neural-grid">
-            <div class="metric">
-                <div class="metric-label">WALLET BALANCE</div>
-                <div class="metric-value" id="balanceMetric">0.0000</div>
-                <div class="metric-label">USDC</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">NETWORK STATUS</div>
-                <div class="metric-value" id="networkMetric" style="font-size:1.5em;">CONNECTED</div>
-                <div class="metric-label" id="chainIdDisplay">CHAIN: ---</div>
-            </div>
-        </div>
-
-        <div class="neural-grid">
-            <div class="neural-panel" data-title="◈ WALLET INTERFACE">
-                <div class="data-row">
-                    <span class="data-label">ADDRESS:</span>
-                    <span class="data-value" id="addressDisplay">---</span>
-                </div>
-                <div class="data-row">
-                    <span class="data-label">NETWORK:</span>
-                    <span class="data-value" id="networkDisplay">---</span>
-                </div>
-                <div class="data-row">
-                    <span class="data-label">BALANCE:</span>
-                    <span class="data-value" id="balanceDisplay">--- USDC</span>
-                </div>
-                <button onclick="refreshBalance()" style="width:100%;margin-top:15px;">↻ REFRESH DATA</button>
-            </div>
-
-            <div class="neural-panel" data-title="◈ QUICK ACTIONS">
-                <div class="action-grid">
-                    <button class="action-btn" onclick="openFaucet()">💧<br>FAUCET</button>
-                    <button class="action-btn" onclick="showSendModal()">📤<br>SEND</button>
-                    <button class="action-btn" onclick="switchNetwork()">🌐<br>NETWORK</button>
-                    <button class="action-btn" onclick="viewHistory()">📜<br>HISTORY</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="terminal">
-            <div class="terminal-output" id="aiTerminal">
-                <div class="terminal-line">NEURAL AI INTERFACE ONLINE...</div>
-                <div class="terminal-line">TYPE 'help' FOR COMMANDS</div>
-            </div>
-            <div class="terminal-input-container">
-                <input type="text" id="aiInput" placeholder="Enter command or ask AI..." onkeypress="handleAIKeyPress(event)">
-                <button onclick="sendAICommand()">EXECUTE</button>
-            </div>
-        </div>
-
-        <div class="neural-panel" data-title="◈ TRANSACTION FEED">
-            <div id="txFeed" style="min-height:100px;">
-                <div class="terminal-line">NO TRANSACTIONS YET</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Send Modal -->
-    <div id="sendModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeSendModal()">✕</span>
-            <h2 style="color:#0f0;margin-bottom:20px;">📤 SEND TRANSACTION</h2>
-            <div style="margin:20px 0;">
-                <label style="color:#0a0;display:block;margin-bottom:5px;">RECIPIENT ADDRESS:</label>
-                <input type="text" id="sendRecipient" placeholder="0x..." style="width:100%;">
-            </div>
-            <div style="margin:20px 0;">
-                <label style="color:#0a0;display:block;margin-bottom:5px;">AMOUNT (USDC):</label>
-                <input type="number" id="sendAmount" placeholder="0.00" step="0.01" min="0" style="width:100%;">
-            </div>
-            <div id="gasEstimateBox" class="hidden" style="margin:20px 0;padding:10px;border:1px solid #ff0;color:#ff0;">
-                <div id="gasEstimateText"></div>
-            </div>
-            <div style="margin-top:20px;">
-                <button onclick="estimateGasCost()" style="width:48%;margin-right:4%;">⚡ ESTIMATE GAS</button>
-                <button onclick="executeSend()" style="width:48%;">🚀 SEND NOW</button>
-            </div>
-            <div id="sendStatus" style="margin-top:20px;"></div>
-        </div>
-    </div>
-
-    <div class="ascii-art">
-╔══════════════════════════════════════════════════════════╗
-║  ARC NEURAL AGENT - BLOCKCHAIN AI INTERFACE v2.0        ║
-║  POWERED BY ETHERS.JS - SECURE - DECENTRALIZED          ║
-╚══════════════════════════════════════════════════════════╝
+    <div id="connectBox" class="connect-box hidden">
+        <p>🤖 NEURAL INTERFACE READY<br>CONNECT YOUR METAMASK WALLET<br>TO ACCESS THE ARC NETWORK</p>
+        <button id="connectBtn" onclick="connectWallet()">🦊 CONNECT METAMASK</button>
+        <div id="connectError" class="hidden" style="margin-top:18px;color:#f55;font-size:.88em;"></div>
     </div>
 </div>
 
-<script>
-// ── ETHERS LOAD CHECK ──
-if (typeof ethers === 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => {
-        const err = document.getElementById('connectError');
-        if (err) { err.textContent = '✕ FAILED TO LOAD ethers.js — CHECK YOUR INTERNET CONNECTION AND RELOAD'; err.classList.remove('hidden'); }
-    });
-}
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
 
-// ── CONFIG ──
-const ARC_CONFIG = {
-    chainId: '0x84b0',
-    chainIdDecimal: 33712,
+    <!-- Metrics -->
+    <div class="metrics-row">
+        <div class="metric">
+            <div class="metric-label">BALANCE</div>
+            <div class="metric-value" id="balanceMetric">—</div>
+            <div class="metric-label">USDC</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">NETWORK</div>
+            <div class="metric-value" id="networkMetric" style="font-size:1em;">—</div>
+            <div class="metric-label" id="chainIdDisplay">CHAIN: —</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">TXs SENT</div>
+            <div class="metric-value" id="txCountMetric">0</div>
+            <div class="metric-label">THIS SESSION</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">LATEST BLOCK</div>
+            <div class="metric-value" id="blockMetric" style="font-size:1.2em;">—</div>
+            <div class="metric-label">ARC CHAIN</div>
+        </div>
+    </div>
+
+    <!-- Wallet + Actions -->
+    <div class="neural-grid">
+        <div class="neural-panel" data-title="◈ WALLET INTERFACE">
+            <div class="data-row">
+                <span class="data-label">ADDRESS</span>
+                <span class="data-value" id="addressDisplay">—</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">NETWORK</span>
+                <span class="data-value" id="networkDisplay">—</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">BALANCE</span>
+                <span class="data-value" id="balanceDisplay">—</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">BLOCK HEIGHT</span>
+                <span class="data-value" id="blockDisplay">—</span>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:14px;">
+                <button onclick="refreshBalance()" style="flex:1;">↻ REFRESH</button>
+                <button onclick="copyAddress()" style="flex:1;">⎘ COPY ADDR</button>
+            </div>
+        </div>
+
+        <div class="neural-panel" data-title="◈ QUICK ACTIONS">
+            <div class="action-grid">
+                <button class="action-btn" onclick="openFaucet()">💧<br>FAUCET</button>
+                <button class="action-btn" onclick="openModal('sendModal')">📤<br>SEND</button>
+                <button class="action-btn" onclick="switchToArc()">🌐<br>SWITCH NET</button>
+                <button class="action-btn" onclick="viewHistory()">📜<br>EXPLORER</button>
+                <button class="action-btn" onclick="openModal('signModal')">✍<br>SIGN MSG</button>
+                <button class="action-btn" onclick="openModal('checkModal')">🔍<br>CHECK TX</button>
+                <button class="action-btn" onclick="pingArc()">📡<br>PING ARC</button>
+                <button class="action-btn" onclick="openModal('batchModal')">⚡<br>BATCH SEND</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Terminal -->
+    <div class="terminal">
+        <div class="terminal-output" id="aiTerminal">
+            <div class="t-line">NEURAL AI TERMINAL ONLINE...</div>
+            <div class="t-line ai">Type "help" for the full command list</div>
+        </div>
+        <div class="t-input-row">
+            <input type="text" id="aiInput" placeholder="Enter command or ask AI..." style="flex:1;"
+                onkeypress="if(event.key==='Enter')sendCmd()">
+            <button onclick="sendCmd()">EXECUTE</button>
+        </div>
+    </div>
+
+    <!-- TX Feed -->
+    <div class="neural-panel" data-title="◈ TRANSACTION FEED" style="margin-top:30px;">
+        <div id="txFeed" style="min-height:70px;">
+            <div class="t-line">NO TRANSACTIONS THIS SESSION</div>
+        </div>
+    </div>
+
+</div><!-- /dashboard -->
+
+<!-- SEND MODAL -->
+<div id="sendModal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal('sendModal')">✕</button>
+    <div class="modal-title">📤 SEND USDC ON ARC</div>
+    <div class="form-group"><label class="form-label">RECIPIENT ADDRESS</label>
+        <input class="form-input" type="text" id="sendRecipient" placeholder="0x..."></div>
+    <div class="form-group"><label class="form-label">AMOUNT (USDC)</label>
+        <input class="form-input" type="number" id="sendAmount" placeholder="0.00" step="0.0001" min="0"></div>
+    <div id="gasBox" class="hidden" style="padding:10px;border:1px solid #ff0;color:#ff0;margin:12px 0;font-size:.85em;">
+        <div id="gasText"></div></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+        <button onclick="estimateGas()" style="flex:1;">⚡ ESTIMATE GAS</button>
+        <button onclick="executeSend()" style="flex:1;">🚀 SEND NOW</button>
+    </div>
+    <div id="sendStatus" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<!-- SIGN MODAL -->
+<div id="signModal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal('signModal')">✕</button>
+    <div class="modal-title">✍ SIGN MESSAGE</div>
+    <p style="color:#0a0;font-size:.85em;margin-bottom:14px;line-height:1.7;">
+        Sign any message with your wallet — cryptographically proves ownership without a transaction fee.</p>
+    <div class="form-group"><label class="form-label">MESSAGE TO SIGN</label>
+        <textarea class="form-input" id="signMessage" rows="4" placeholder="Enter your message..."></textarea></div>
+    <button onclick="signMsg()" style="width:100%;margin-top:10px;">✍ SIGN WITH METAMASK</button>
+    <div id="signResult" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<!-- CHECK TX MODAL -->
+<div id="checkModal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal('checkModal')">✕</button>
+    <div class="modal-title">🔍 CHECK TRANSACTION STATUS</div>
+    <div class="form-group"><label class="form-label">TRANSACTION HASH</label>
+        <input class="form-input" type="text" id="checkHash" placeholder="0x..."></div>
+    <button onclick="checkTx()" style="width:100%;margin-top:10px;">🔍 LOOKUP ON ARC</button>
+    <div id="checkResult" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<!-- BATCH SEND MODAL -->
+<div id="batchModal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal('batchModal')">✕</button>
+    <div class="modal-title">⚡ BATCH SEND</div>
+    <p style="color:#0a0;font-size:.85em;margin-bottom:14px;line-height:1.7;">
+        Send to multiple recipients. Format: <code style="color:#0f0;">address,amount</code> — one per line.</p>
+    <div class="form-group"><label class="form-label">RECIPIENTS</label>
+        <textarea class="form-input" id="batchData" rows="6"
+            placeholder="0xABC...,0.01&#10;0xDEF...,0.02&#10;0x123...,0.005"></textarea></div>
+    <div id="batchPreview" style="margin:12px 0;font-size:.83em;color:#0a0;line-height:1.7;"></div>
+    <div style="display:flex;gap:10px;margin-top:10px;">
+        <button onclick="parseBatch()" style="flex:1;">📋 PREVIEW</button>
+        <button onclick="executeBatch()" style="flex:1;">🚀 SEND ALL</button>
+    </div>
+    <div id="batchStatus" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<div class="ascii-art">
+╔══════════════════════════════════════════════════════════════════╗
+║   ARC NEURAL AGENT v3.0 — BLOCKCHAIN AI INTERFACE              ║
+║   CHAIN ID: 5042002  ·  ETHERS.JS  ·  DECENTRALIZED            ║
+╚══════════════════════════════════════════════════════════════════╝
+</div>
+</div><!-- /container -->
+
+<script>
+// ══ CONFIG — Chain 5042002 = 0x4CEF52 ══
+const ARC = {
+    chainId: '0x4CEF52',        // 5042002 in hex
+    chainIdDecimal: 5042002,
     chainName: 'Arc Testnet',
     nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
     rpcUrls: ['https://rpc.testnet.arc.network'],
     blockExplorerUrls: ['https://testnet.arcscan.app']
 };
 
-// ── STATE ──
-let provider = null, signer = null, userAddress = null, isConnected = false;
+let provider=null, signer=null, userAddress=null, isConnected=false, txCount=0, autoTimer=null;
 
-// ── BOOT ──
+// ══ BOOT ══
 window.addEventListener('load', () => {
-    if (typeof window.ethereum === 'undefined') {
-        document.getElementById('noMetaMaskMsg').classList.remove('hidden');
+    if (typeof ethers === 'undefined') {
+        showConnErr('ethers.js FAILED TO LOAD — CHECK INTERNET & RELOAD'); return;
+    }
+    if (!window.ethereum) {
+        document.getElementById('noMetaMsg').classList.remove('hidden');
         document.getElementById('systemStatus').textContent = 'METAMASK NOT FOUND';
     } else {
         document.getElementById('connectBox').classList.remove('hidden');
         document.getElementById('systemStatus').textContent = 'CLICK CONNECT TO BEGIN';
-        // Silently check if already authorised (no popup)
-        window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
-            if (accounts.length > 0) initializeConnection(accounts[0]);
-        }).catch(() => {});
+        window.ethereum.request({ method: 'eth_accounts' })
+            .then(a => { if (a && a.length) initConn(a[0]); })
+            .catch(()=>{});
     }
 });
 
-// ── CONNECT (called by button click only) ──
+// ══ CONNECT ══
 async function connectWallet() {
     const btn = document.getElementById('connectBtn');
-    const errEl = document.getElementById('connectError');
-    btn.disabled = true;
-    btn.textContent = '⏳ CONNECTING...';
-    errEl.classList.add('hidden');
-
+    btn.disabled=true; btn.textContent='⏳ CONNECTING...';
+    document.getElementById('connectError').classList.add('hidden');
     try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        await initializeConnection(accounts[0]);
-    } catch (err) {
-        btn.disabled = false;
-        btn.textContent = '🦊 CONNECT METAMASK';
-        errEl.textContent = err.code === 4001
-            ? '✕ CONNECTION REJECTED — PLEASE APPROVE IN METAMASK'
-            : '✕ ERROR: ' + err.message;
-        errEl.classList.remove('hidden');
+        await initConn(accounts[0]);
+    } catch(e) {
+        btn.disabled=false; btn.textContent='🦊 CONNECT METAMASK';
+        showConnErr(e.code===4001 ? '✕ REJECTED — APPROVE IN METAMASK' : '✕ '+e.message);
     }
 }
 
-async function initializeConnection(address) {
+async function initConn(address) {
     userAddress = address;
     provider = new ethers.providers.Web3Provider(window.ethereum);
     signer = provider.getSigner();
     isConnected = true;
 
-    // Swap screens
     document.getElementById('connectScreen').classList.add('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
-
-    // Header
     const dot = document.getElementById('statusDot');
     dot.classList.remove('offline'); dot.classList.add('online');
     document.getElementById('systemStatus').textContent = 'NEURAL INTERFACE ACTIVE';
-    document.getElementById('walletStatus').textContent = 'WALLET: ' + formatAddress(address);
-    document.getElementById('addressDisplay').textContent = formatAddress(address);
+    document.getElementById('walletStatus').textContent = '🤖 WALLET: ' + addr(address);
+    document.getElementById('addressDisplay').innerHTML = addr(address) +
+        ' <button class="copy-btn" onclick="copyAddress()">COPY</button>';
 
-    await updateNetworkInfo();
+    await updateNetwork();
     await refreshBalance();
-    setupEventListeners();
+    await refreshBlock();
+    startAutoRefresh();
 
-    setTimeout(() => {
-        logToTerminal('NEURAL INTERFACE READY');
-        logToTerminal('TYPE "help" FOR AVAILABLE COMMANDS');
-        addAIResponse('🤖 NEURAL AI ONLINE. READY TO ASSIST.');
+    window.ethereum.on('accountsChanged', a => { if(!a.length||a[0]!==userAddress) location.reload(); });
+    window.ethereum.on('chainChanged', () => location.reload());
+
+    setTimeout(()=>{
+        log('ALL SYSTEMS ONLINE — ARC NEURAL AGENT READY', 'ok');
+        log('Network: '+ARC.chainName+' | ChainID: '+ARC.chainIdDecimal, 'ai');
+        log('Type "help" for command list', 'ai');
     }, 400);
 }
 
-function setupEventListeners() {
-    window.ethereum.on('accountsChanged', accs => {
-        if (accs.length === 0 || accs[0] !== userAddress) window.location.reload();
-    });
-    window.ethereum.on('chainChanged', () => window.location.reload());
+// ══ NETWORK ══
+async function updateNetwork() {
+    try {
+        const net = await provider.getNetwork();
+        const onArc = (net.chainId === ARC.chainIdDecimal);
+        document.getElementById('networkDisplay').textContent = onArc ? ARC.chainName : 'Chain '+net.chainId;
+        document.getElementById('chainIdDisplay').textContent = 'CHAIN: '+net.chainId;
+        const nm = document.getElementById('networkMetric');
+        nm.textContent = onArc ? 'ARC TESTNET' : 'WRONG NETWORK';
+        nm.style.color = onArc ? '#0f0' : '#ff0';
+        nm.style.fontSize = onArc ? '1em' : '.9em';
+        if (!onArc) log('NOT ON ARC TESTNET (chain '+net.chainId+'). Click 🌐 SWITCH NET!','err');
+    } catch(e) {}
 }
 
-// ── WALLET ──
-async function updateNetworkInfo() {
+async function switchToArc() {
+    log('SWITCHING TO ARC TESTNET (5042002)...');
     try {
-        const network = await provider.getNetwork();
-        document.getElementById('networkDisplay').textContent = network.name || `CHAIN ${network.chainId}`;
-        document.getElementById('chainIdDisplay').textContent = `CHAIN: ${network.chainId}`;
-        if (network.chainId === ARC_CONFIG.chainIdDecimal) {
-            document.getElementById('networkMetric').textContent = 'ARC TESTNET';
-            document.getElementById('networkMetric').style.color = '#0f0';
-        } else {
-            document.getElementById('networkMetric').textContent = 'WRONG NETWORK';
-            document.getElementById('networkMetric').style.color = '#ff0';
-            logToTerminal('WARNING: NOT ON ARC TESTNET — CLICK 🌐 NETWORK TO SWITCH');
-        }
-    } catch(e) { console.error(e); }
-}
-
-async function refreshBalance() {
-    if (!provider || !userAddress) return;
-    try {
-        const bal = await provider.getBalance(userAddress);
-        const rounded = parseFloat(ethers.utils.formatEther(bal)).toFixed(4);
-        document.getElementById('balanceMetric').textContent = rounded;
-        document.getElementById('balanceDisplay').textContent = rounded + ' USDC';
-        logToTerminal('BALANCE UPDATED: ' + rounded + ' USDC');
-    } catch(e) { logToTerminal('BALANCE REFRESH FAILED'); }
-}
-
-async function switchNetwork() {
-    try {
-        logToTerminal('SWITCHING TO ARC TESTNET...');
-        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: ARC_CONFIG.chainId }] });
-        logToTerminal('NETWORK SWITCHED ✓');
-    } catch (err) {
-        if (err.code === 4902) {
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: ARC.chainId }]
+        });
+        log('SWITCHED TO ARC TESTNET ✓', 'ok');
+    } catch(e) {
+        if (e.code===4902 || e.code===-32603 || (e.message&&e.message.includes('wallet_addEthereumChain'))) {
+            log('ARC NOT IN METAMASK — ADDING NETWORK...', 'ai');
             try {
-                logToTerminal('ADDING ARC TESTNET...');
-                await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [ARC_CONFIG] });
-                logToTerminal('NETWORK ADDED ✓');
-            } catch(e) { logToTerminal('FAILED TO ADD NETWORK: ' + e.message); }
-        } else { logToTerminal('SWITCH FAILED: ' + err.message); }
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: ARC.chainId,
+                        chainName: ARC.chainName,
+                        nativeCurrency: ARC.nativeCurrency,
+                        rpcUrls: ARC.rpcUrls,
+                        blockExplorerUrls: ARC.blockExplorerUrls
+                    }]
+                });
+                log('ARC TESTNET ADDED & SWITCHED ✓','ok');
+            } catch(e2){ log('ADD NETWORK FAILED: '+e2.message,'err'); }
+        } else if (e.code===4001) {
+            log('SWITCH REJECTED BY USER','err');
+        } else {
+            log('SWITCH ERROR ('+e.code+'): '+e.message,'err');
+        }
     }
 }
 
-// ── SEND ──
-function showSendModal() { document.getElementById('sendModal').classList.add('active'); document.getElementById('sendStatus').innerHTML = ''; document.getElementById('gasEstimateBox').classList.add('hidden'); }
-function closeSendModal() { document.getElementById('sendModal').classList.remove('active'); }
-
-async function estimateGasCost() {
-    const recipient = document.getElementById('sendRecipient').value.trim();
-    const amount = document.getElementById('sendAmount').value;
-    if (!recipient || !amount) return;
-    if (!ethers.utils.isAddress(recipient)) { logToTerminal('INVALID ADDRESS'); return; }
+// ══ BALANCE & BLOCK ══
+async function refreshBalance() {
+    if (!provider||!userAddress) return;
     try {
-        const amountWei = ethers.utils.parseEther(amount);
-        const gasEstimate = await provider.estimateGas({ to: recipient, value: amountWei });
-        const gasPrice = await provider.getGasPrice();
-        const gasCostEth = ethers.utils.formatEther(gasEstimate.mul(gasPrice));
-        document.getElementById('gasEstimateText').innerHTML =
-            `GAS LIMIT: ${gasEstimate.toString()} UNITS<br>GAS PRICE: ${ethers.utils.formatUnits(gasPrice,'gwei')} GWEI<br>TOTAL COST: ~${parseFloat(gasCostEth).toFixed(6)} ETH`;
-        document.getElementById('gasEstimateBox').classList.remove('hidden');
-    } catch(e) { logToTerminal('GAS ESTIMATION ERROR: ' + e.message); }
+        const b = await provider.getBalance(userAddress);
+        const r = parseFloat(ethers.utils.formatEther(b)).toFixed(4);
+        document.getElementById('balanceMetric').textContent = r;
+        document.getElementById('balanceDisplay').textContent = r+' USDC';
+        log('BALANCE: '+r+' USDC');
+    } catch(e){ log('BALANCE ERROR: '+e.message,'err'); }
+}
+
+async function refreshBlock() {
+    try {
+        const b = await provider.getBlockNumber();
+        document.getElementById('blockMetric').textContent = b.toLocaleString();
+        document.getElementById('blockDisplay').textContent = '#'+b.toLocaleString();
+    } catch(e){}
+}
+
+function startAutoRefresh() {
+    clearInterval(autoTimer);
+    autoTimer = setInterval(async()=>{ await refreshBalance(); await refreshBlock(); }, 30000);
+}
+
+// ══ SEND ══
+async function estimateGas() {
+    const to=document.getElementById('sendRecipient').value.trim();
+    const amt=document.getElementById('sendAmount').value;
+    if (!to||!amt||!ethers.utils.isAddress(to)){ log('ENTER VALID ADDRESS & AMOUNT','err'); return; }
+    try {
+        const val=ethers.utils.parseEther(amt);
+        const gas=await provider.estimateGas({to,value:val});
+        const gp=await provider.getGasPrice();
+        const cost=ethers.utils.formatEther(gas.mul(gp));
+        document.getElementById('gasText').innerHTML =
+            'GAS: '+gas.toString()+' units &nbsp;·&nbsp; PRICE: '+
+            parseFloat(ethers.utils.formatUnits(gp,'gwei')).toFixed(4)+' GWEI &nbsp;·&nbsp; COST: ~'+
+            parseFloat(cost).toFixed(8)+' USDC';
+        document.getElementById('gasBox').classList.remove('hidden');
+    } catch(e){ log('GAS ESTIMATION FAILED: '+e.message,'err'); }
 }
 
 async function executeSend() {
-    const recipient = document.getElementById('sendRecipient').value.trim();
-    const amount = document.getElementById('sendAmount').value;
-    if (!recipient || !amount || !ethers.utils.isAddress(recipient) || parseFloat(amount) <= 0) return;
-    const statusDiv = document.getElementById('sendStatus');
-    statusDiv.innerHTML = '<div class="alert">⏳ INITIATING TRANSACTION...</div>';
+    const to=document.getElementById('sendRecipient').value.trim();
+    const amt=document.getElementById('sendAmount').value;
+    const sd=document.getElementById('sendStatus');
+    if (!to||!amt||!ethers.utils.isAddress(to)||parseFloat(amt)<=0){
+        sd.innerHTML='<div class="alert err">ENTER VALID ADDRESS & AMOUNT > 0</div>'; return; }
+    sd.innerHTML='<div class="alert warn">⏳ SUBMITTING TO ARC NETWORK...</div>';
     try {
-        const tx = await signer.sendTransaction({ to: recipient, value: ethers.utils.parseEther(amount) });
-        statusDiv.innerHTML = `<div class="alert">⏳ TX SUBMITTED: ${formatAddress(tx.hash)}<br>WAITING FOR CONFIRMATION...</div>`;
-        logToTerminal('TX SUBMITTED: ' + formatAddress(tx.hash));
-        const receipt = await tx.wait();
-        statusDiv.innerHTML = `<div class="alert" style="border-color:#0f0;">✓ CONFIRMED — BLOCK ${receipt.blockNumber}<br><a href="${ARC_CONFIG.blockExplorerUrls[0]}/tx/${receipt.transactionHash}" target="_blank" style="color:#0f0;">VIEW ON EXPLORER →</a></div>`;
-        logToTerminal('TX CONFIRMED ✓ BLOCK: ' + receipt.blockNumber);
-        addTransactionToFeed('SENT', amount, recipient, receipt.transactionHash);
+        const tx=await signer.sendTransaction({to,value:ethers.utils.parseEther(amt)});
+        sd.innerHTML='<div class="alert warn">⏳ PENDING: '+addr(tx.hash)+'</div>';
+        log('TX SUBMITTED: '+tx.hash);
+        const receipt=await tx.wait();
+        sd.innerHTML='<div class="alert ok">✓ CONFIRMED BLOCK #'+receipt.blockNumber+
+            '<br><a class="tx-link" href="'+ARC.blockExplorerUrls[0]+'/tx/'+receipt.transactionHash+
+            '" target="_blank">VIEW ON ARCSCAN →</a></div>';
+        log('TX CONFIRMED ✓ BLOCK #'+receipt.blockNumber,'ok');
+        txCount++; document.getElementById('txCountMetric').textContent=txCount;
+        addFeed('SENT',amt,to,receipt.transactionHash,receipt.blockNumber);
         await refreshBalance();
-        document.getElementById('sendRecipient').value = '';
-        document.getElementById('sendAmount').value = '';
-        setTimeout(closeSendModal, 3000);
-    } catch(e) {
-        statusDiv.innerHTML = `<div class="alert error">✕ FAILED: ${e.message}</div>`;
-        logToTerminal('TX FAILED: ' + e.message);
+        document.getElementById('sendRecipient').value='';
+        document.getElementById('sendAmount').value='';
+        setTimeout(()=>closeModal('sendModal'),3500);
+    } catch(e){
+        sd.innerHTML='<div class="alert err">✕ FAILED: '+e.message+'</div>';
+        log('TX FAILED: '+e.message,'err');
     }
 }
 
-function addTransactionToFeed(type, amount, address, hash) {
-    const feed = document.getElementById('txFeed');
-    if (feed.innerHTML.includes('NO TRANSACTIONS')) feed.innerHTML = '';
-    const item = document.createElement('div');
-    item.className = 'tx-item';
-    item.innerHTML = `<strong>${type}</strong> ${amount} USDC<br>${type==='SENT'?'TO':'FROM'}: ${formatAddress(address)}<br><span class="tx-hash">TX: ${formatAddress(hash)}</span>`;
-    feed.insertBefore(item, feed.firstChild);
-    while (feed.children.length > 5) feed.removeChild(feed.lastChild);
+// ══ SIGN ══
+async function signMsg() {
+    const msg=document.getElementById('signMessage').value.trim();
+    const rd=document.getElementById('signResult');
+    if (!msg){ rd.innerHTML='<div class="alert err">ENTER A MESSAGE</div>'; return; }
+    rd.innerHTML='<div class="alert warn">⏳ CHECK METAMASK POPUP...</div>';
+    try {
+        const sig=await signer.signMessage(msg);
+        rd.innerHTML='<div class="alert ok">✓ SIGNED<br><span style="font-size:.78em;word-break:break-all;color:#0a0;">'+sig+'</span></div>';
+        log('MESSAGE SIGNED SUCCESSFULLY ✓','ok');
+        txCount++; document.getElementById('txCountMetric').textContent=txCount;
+        addFeed('SIGN','—',userAddress,sig.substring(0,66),'—');
+    } catch(e){
+        rd.innerHTML='<div class="alert err">✕ '+(e.code===4001?'REJECTED BY USER':e.message)+'</div>';
+    }
 }
 
-// ── AI TERMINAL ──
-function handleAIKeyPress(e) { if (e.key === 'Enter') sendAICommand(); }
-function sendAICommand() {
-    const input = document.getElementById('aiInput');
-    const cmd = input.value.trim().toLowerCase();
-    if (!cmd) return;
-    logToTerminal('USER: ' + input.value);
-    input.value = '';
-    setTimeout(() => processAICommand(cmd), 300);
+// ══ CHECK TX ══
+async function checkTx() {
+    const hash=document.getElementById('checkHash').value.trim();
+    const rd=document.getElementById('checkResult');
+    if (!hash){ rd.innerHTML='<div class="alert err">ENTER A TX HASH</div>'; return; }
+    rd.innerHTML='<div class="alert warn">⏳ QUERYING ARC CHAIN...</div>';
+    try {
+        const receipt=await provider.getTransactionReceipt(hash);
+        if (!receipt) {
+            const tx=await provider.getTransaction(hash);
+            rd.innerHTML=tx
+                ? '<div class="alert warn">⏳ PENDING — NOT YET MINED<br>FROM: '+addr(tx.from)+'</div>'
+                : '<div class="alert err">✕ TX NOT FOUND ON ARC</div>';
+            return;
+        }
+        const ok=receipt.status===1;
+        rd.innerHTML='<div class="alert '+(ok?'ok':'err')+'">'+(ok?'✓ SUCCESS':'✕ REVERTED')+
+            '<br>BLOCK: #'+receipt.blockNumber+
+            '<br>FROM: '+addr(receipt.from)+
+            '<br>TO: '+addr(receipt.to)+
+            '<br>GAS USED: '+receipt.gasUsed.toString()+
+            '<br><a class="tx-link" href="'+ARC.blockExplorerUrls[0]+'/tx/'+hash+'" target="_blank">VIEW ON ARCSCAN →</a></div>';
+    } catch(e){ rd.innerHTML='<div class="alert err">✕ LOOKUP ERROR: '+e.message+'</div>'; }
 }
-function processAICommand(cmd) {
-    const map = {
-        'help': () => { addAIResponse('COMMANDS: help, status, balance, send, faucet, network, clear'); },
-        'clear': () => { document.getElementById('aiTerminal').innerHTML = ''; logToTerminal('TERMINAL CLEARED'); },
-        'status': () => { addAIResponse(`CONNECTED: ${isConnected} | ADDRESS: ${formatAddress(userAddress)}`); },
-        'balance': () => refreshBalance(),
-        'send': () => { showSendModal(); addAIResponse('OPENING SEND INTERFACE...'); },
-        'faucet': () => openFaucet(),
-        'network': () => switchNetwork(),
+
+// ══ PING (0-val self-tx) ══
+async function pingArc() {
+    log('PINGING ARC — SENDING 0 USDC TO SELF...');
+    try {
+        const tx=await signer.sendTransaction({to:userAddress,value:ethers.utils.parseEther('0')});
+        log('PING SUBMITTED: '+addr(tx.hash));
+        const r=await tx.wait();
+        log('PING CONFIRMED ✓ BLOCK #'+r.blockNumber,'ok');
+        txCount++; document.getElementById('txCountMetric').textContent=txCount;
+        addFeed('PING','0',userAddress,r.transactionHash,r.blockNumber);
+        await refreshBalance();
+    } catch(e){ log('PING FAILED: '+e.message,'err'); }
+}
+
+// ══ BATCH SEND ══
+function parseBatch() {
+    const lines=document.getElementById('batchData').value.trim().split('\n').filter(l=>l.trim());
+    let html='<strong>PREVIEW — '+lines.length+' RECIPIENT(S):</strong><br>';
+    let total=0,valid=0;
+    lines.forEach((l,i)=>{
+        const [a,m]=(l+',').split(',');
+        const ok=a&&m&&ethers.utils.isAddress(a.trim())&&!isNaN(parseFloat(m))&&parseFloat(m)>0;
+        if(ok){total+=parseFloat(m);valid++;}
+        html+='<br>'+(i+1)+'. '+(ok?'✓':'✕')+' '+(a?addr(a.trim()):'?')+' → '+(m?parseFloat(m).toFixed(4):'?')+' USDC';
+    });
+    html+='<br><br>VALID: '+valid+'/'+lines.length+' &nbsp;·&nbsp; TOTAL: '+total.toFixed(4)+' USDC';
+    document.getElementById('batchPreview').innerHTML=html;
+}
+
+async function executeBatch() {
+    const lines=document.getElementById('batchData').value.trim().split('\n').filter(l=>l.trim());
+    const bd=document.getElementById('batchStatus'); bd.innerHTML='';
+    let sent=0,failed=0;
+    for(const l of lines){
+        const [a,m]=(l+',').split(',');
+        const to=a?a.trim():''; const amt=m?m.trim():'';
+        if(!to||!amt||!ethers.utils.isAddress(to)||isNaN(parseFloat(amt))||parseFloat(amt)<=0){failed++;continue;}
+        try{
+            bd.innerHTML+='<div class="alert warn">⏳ SENDING '+amt+' → '+addr(to)+'</div>';
+            const tx=await signer.sendTransaction({to,value:ethers.utils.parseEther(amt)});
+            const r=await tx.wait();
+            sent++; txCount++; document.getElementById('txCountMetric').textContent=txCount;
+            bd.innerHTML+='<div class="alert ok">✓ '+amt+' USDC → '+addr(to)+' · BLOCK #'+r.blockNumber+'</div>';
+            addFeed('BATCH',amt,to,r.transactionHash,r.blockNumber);
+        } catch(e){ failed++; bd.innerHTML+='<div class="alert err">✕ FAILED → '+addr(to)+': '+e.message+'</div>'; }
+    }
+    bd.innerHTML+='<div class="alert ok" style="margin-top:10px;">BATCH DONE — SENT: '+sent+' · FAILED: '+failed+'</div>';
+    await refreshBalance();
+}
+
+// ══ TX FEED ══
+function addFeed(type,amount,toAddr,hash,block){
+    const feed=document.getElementById('txFeed');
+    if(feed.textContent.includes('NO TRANSACTIONS')) feed.innerHTML='';
+    const d=document.createElement('div'); d.className='tx-item';
+    d.innerHTML='<strong>'+type+'</strong> '+amount+' USDC · '+(type==='SENT'||type==='BATCH'?'TO':'ADDR')+': '+
+        addr(toAddr)+' · BLOCK: '+block+
+        '<br><span class="tx-hash">TX: <a class="tx-link" href="'+ARC.blockExplorerUrls[0]+'/tx/'+hash+
+        '" target="_blank">'+addr(hash)+'</a></span>';
+    feed.insertBefore(d,feed.firstChild);
+    while(feed.children.length>10) feed.removeChild(feed.lastChild);
+}
+
+// ══ AI TERMINAL ══
+function sendCmd(){
+    const inp=document.getElementById('aiInput');
+    const raw=inp.value.trim(); if(!raw) return;
+    log('YOU: '+raw);
+    inp.value='';
+    setTimeout(()=>processCmd(raw.toLowerCase(),raw),200);
+}
+
+function processCmd(cmd,raw){
+    const map={
+        'help':()=>{
+            log('══ COMMANDS ══','ai');
+            ['balance — refresh balance','block — latest block','send — open send',
+             'sign — sign message','check — check tx hash','ping — 0-val tx to self',
+             'batch — batch send','faucet — Circle faucet','switch / network — switch to Arc',
+             'txcount — session count','address — show address','explorer — ArcScan','clear — clear terminal'
+            ].forEach(c=>log(c,'ai'));
+        },
+        'balance':()=>refreshBalance(),
+        'bal':()=>refreshBalance(),
+        'block':()=>refreshBlock().then(()=>log('BLOCK: '+document.getElementById('blockMetric').textContent,'ai')),
+        'send':()=>{openModal('sendModal');log('OPENING SEND...','ai');},
+        'sign':()=>{openModal('signModal');log('OPENING SIGN MESSAGE...','ai');},
+        'check':()=>{openModal('checkModal');log('OPENING TX CHECKER...','ai');},
+        'ping':()=>pingArc(),
+        'batch':()=>{openModal('batchModal');log('OPENING BATCH SEND...','ai');},
+        'faucet':()=>openFaucet(),
+        'network':()=>switchToArc(),
+        'switch':()=>switchToArc(),
+        'txcount':()=>log('SESSION TX COUNT: '+txCount,'ai'),
+        'address':()=>log('ADDRESS: '+userAddress,'ai'),
+        'addr':()=>log('ADDRESS: '+userAddress,'ai'),
+        'explorer':()=>viewHistory(),
+        'clear':()=>{ document.getElementById('aiTerminal').innerHTML=''; },
+        'status':()=>log('CONNECTED: '+isConnected+' | ADDR: '+addr(userAddress)+' | TXs: '+txCount,'ai'),
     };
-    if (map[cmd]) { map[cmd](); return; }
-    addAIResponse(generateAIResponse(cmd));
-}
-function generateAIResponse(q) {
-    if (q.includes('arc')) return 'Arc Network is a high-performance blockchain testnet using USDC as native gas currency.';
-    if (q.includes('usdc') || q.includes('token')) return 'USDC is the native currency on Arc Testnet. Get free test USDC with the "faucet" command.';
-    if (q.includes('gas') || q.includes('fee')) return 'Gas fees are low on Arc Testnet. Use "estimate gas" in the SEND modal to preview costs.';
-    if (q.includes('send') || q.includes('transfer')) return 'Type "send" or click the SEND button. Enter recipient address and amount. Always verify addresses!';
-    if (q.includes('hello') || q.includes('hi')) return 'GREETINGS, OPERATOR. NEURAL INTERFACE READY FOR YOUR COMMANDS.';
-    return 'QUERY LOGGED. Type "help" for commands, or ask about Arc, gas, tokens, or transactions.';
-}
-function addAIResponse(text) { logToTerminal('AI: ' + text); }
-function logToTerminal(text) {
-    const t = document.getElementById('aiTerminal');
-    if (!t) return;
-    const line = document.createElement('div');
-    line.className = 'terminal-line';
-    line.textContent = text;
-    t.appendChild(line);
-    t.scrollTop = t.scrollHeight;
+    if(map[cmd]){map[cmd]();return;}
+    log(aiReply(cmd),'ai');
 }
 
-// ── UTILS ──
-function formatAddress(addr) { if (!addr || addr.length < 10) return addr || '---'; return addr.substring(0,6) + '...' + addr.substring(addr.length-4); }
-function openFaucet() { window.open('https://faucet.arc.network/', '_blank'); logToTerminal('OPENING FAUCET...'); addAIResponse('Faucet opened. Use address: ' + formatAddress(userAddress)); }
-function viewHistory() { window.open(`${ARC_CONFIG.blockExplorerUrls[0]}/address/${userAddress}`, '_blank'); logToTerminal('OPENING BLOCK EXPLORER...'); }
+function aiReply(q){
+    if(q.includes('arc')) return 'Arc Testnet — high-performance chain, ChainID 5042002, native USDC for gas.';
+    if(q.includes('usdc')||q.includes('token')) return 'USDC = native currency on Arc. Get free testnet USDC at faucet.circle.com — type "faucet".';
+    if(q.includes('gas')||q.includes('fee')) return 'Arc gas fees are very low. Use ESTIMATE GAS in the SEND modal to preview exact cost.';
+    if(q.includes('send')||q.includes('transfer')) return 'Type "send" or click 📤 SEND. Double-check recipient address before sending!';
+    if(q.includes('ping')) return 'Type "ping" — sends a 0-value tx to yourself. Counts as an Arc chain interaction.';
+    if(q.includes('batch')) return 'Batch send lets you send to multiple wallets at once. Type "batch" to open it.';
+    if(q.includes('sign')) return 'Type "sign" to sign a message — proves wallet ownership without spending gas.';
+    if(q.includes('faucet')) return 'Circle faucet: faucet.circle.com — free testnet USDC. Type "faucet" to open.';
+    if(q.includes('hello')||q.includes('hi')||q.includes('hey')) return 'GREETINGS OPERATOR. ALL ARC SYSTEMS NOMINAL. HOW MAY I ASSIST?';
+    if(q.includes('safe')||q.includes('security')) return 'NEVER share your private key. Always verify addresses. This is a testnet — no real value.';
+    return 'QUERY LOGGED. Type "help" for commands, or ask about Arc, USDC, gas, ping, batch, or sign.';
+}
 
-// ── KONAMI ──
-let kc = [];
-const ks = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
-document.addEventListener('keydown', e => {
-    kc.push(e.key); kc = kc.slice(-10);
-    if (kc.join(',') === ks.join(',')) {
-        logToTerminal('╔══════════════════════════════════════╗');
-        logToTerminal('║  KONAMI CODE — MAXIMUM POWER MODE   ║');
-        logToTerminal('╚══════════════════════════════════════╝');
-        document.body.style.animation = 'glitch 0.3s infinite';
-        setTimeout(() => document.body.style.animation = '', 3000);
+// ══ UTILS ══
+function addr(a){ if(!a||a.length<10) return a||'—'; return a.substring(0,6)+'...'+a.substring(a.length-4); }
+function log(txt,type=''){
+    const t=document.getElementById('aiTerminal'); if(!t) return;
+    const d=document.createElement('div');
+    d.className='t-line'+(type?' '+type:'');
+    d.textContent=txt; t.appendChild(d); t.scrollTop=t.scrollHeight;
+}
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+function openFaucet(){ window.open('https://faucet.circle.com/','_blank'); log('CIRCLE FAUCET OPENED → faucet.circle.com','ai'); log('PASTE YOUR ADDRESS: '+userAddress,'ai'); }
+function viewHistory(){ window.open(ARC.blockExplorerUrls[0]+'/address/'+userAddress,'_blank'); log('ARCSCAN OPENED','ai'); }
+function copyAddress(){ if(!userAddress) return; navigator.clipboard.writeText(userAddress).then(()=>log('ADDRESS COPIED ✓','ok')).catch(()=>{}); }
+function showConnErr(m){ const e=document.getElementById('connectError'); if(!e) return; e.textContent=m; e.classList.remove('hidden'); }
+
+// Close modal on backdrop click
+document.addEventListener('click', e=>{
+    if(e.target.classList.contains('modal')) e.target.classList.remove('active');
+});
+
+// ══ KONAMI ══
+let kc=[];
+document.addEventListener('keydown',e=>{
+    kc.push(e.key); kc=kc.slice(-10);
+    if(kc.join(',')===('ArrowUp,ArrowUp,ArrowDown,ArrowDown,ArrowLeft,ArrowRight,ArrowLeft,ArrowRight,b,a')){
+        log('╔══════════════════════════════════════╗','ok');
+        log('║   KONAMI CODE — MAXIMUM POWER MODE  ║','ok');
+        log('╚══════════════════════════════════════╝','ok');
+        document.body.style.animation='glitch 0.3s infinite';
+        setTimeout(()=>document.body.style.animation='',3000);
     }
 });
 </script>
