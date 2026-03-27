@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Arc Neural Agent v6.0 — AI-Powered Blockchain Assistant</title>
+    <title>Arc Neural Agent — AI-Powered Blockchain Assistant</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23000'/><rect x='16' y='20' width='32' height='28' rx='4' fill='%2300ff00' opacity='.9'/><rect x='22' y='26' width='8' height='8' rx='2' fill='%23000'/><rect x='34' y='26' width='8' height='8' rx='2' fill='%23000'/><rect x='28' y='36' width='8' height='4' rx='1' fill='%23000'/><rect x='29' y='12' width='6' height='10' rx='3' fill='%2300ff00'/><rect x='8' y='26' width='8' height='14' rx='3' fill='%2300ff00' opacity='.7'/><rect x='48' y='26' width='8' height='14' rx='3' fill='%2300ff00' opacity='.7'/><rect x='22' y='48' width='8' height='10' rx='2' fill='%2300ff00' opacity='.7'/><rect x='34' y='48' width='8' height='10' rx='2' fill='%2300ff00' opacity='.7'/></svg>">
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -62,8 +62,8 @@
         input::placeholder,textarea::placeholder{color:#0a0;}
 
         .metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin:20px 0;}
-        .metric{text-align:center;padding:20px 10px;background:rgba(0,255,0,.05);border:1px solid #0f0;}
-        .metric-value{font-size:1.8em;color:#0f0;text-shadow:0 0 12px #0f0;font-weight:bold;margin:8px 0;}
+        .metric{text-align:center;padding:20px 10px;background:rgba(0,255,0,.05);border:1px solid #0f0;overflow:hidden;}
+        .metric-value{font-size:1.4em;color:#0f0;text-shadow:0 0 12px #0f0;font-weight:bold;margin:8px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
         .metric-label{color:#0a0;text-transform:uppercase;letter-spacing:2px;font-size:.75em;}
 
         .neural-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;margin:20px 0;}
@@ -199,7 +199,7 @@
 <div class="container">
 
 <div class="neural-header glitch">
-    <h1>⚡ ARC NEURAL AGENT <span class="version-badge">v6.0</span></h1>
+    <h1>⚡ ARC NEURAL AGENT</h1>
     <div class="status-line">
         <span class="status-dot offline" id="statusDot"></span>
         <span id="systemStatus">AWAITING WALLET CONNECTION</span>
@@ -318,7 +318,7 @@
                 <button class="action-btn new" onclick="openModal('tokenModal')">🪙<br>TOKENS</button>
                 <button class="action-btn new" onclick="openModal('ensModal')">🔎<br>ENS</button>
                 <button class="action-btn new" onclick="openAnalytics()">📈<br>CHARTS</button>
-                <button class="action-btn new" onclick="openModal('aiChatModal')">🤖<br>AI CHAT</button>
+                <button class="action-btn new" onclick="openModal('aiChatModal');setTimeout(refreshApiKeyBanner,50);">🤖<br>AI CHAT</button>
             </div>
         </div>
     </div>
@@ -524,11 +524,16 @@
   </div>
 </div>
 
-<!-- AI CHAT (no API key needed) -->
+<!-- AI CHAT -->
 <div id="aiChatModal" class="modal">
   <div class="modal-content" style="max-width:700px;">
     <button class="modal-close" onclick="closeModal('aiChatModal')">✕</button>
     <div class="modal-title">🤖 ARC AI — CLAUDE-POWERED CHAT</div>
+    <div id="apiKeyBanner" class="alert warn" style="margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span style="flex:1;">⚠ ENTER YOUR ANTHROPIC API KEY TO ENABLE AI CHAT</span>
+        <input type="password" id="inlineApiKey" placeholder="sk-ant-..." style="flex:2;min-width:180px;padding:6px 10px;font-size:.82em;">
+        <button onclick="saveInlineApiKey()" style="padding:6px 14px;font-size:.78em;">SAVE</button>
+    </div>
     <div class="chat-feed" id="aiChatFeed"></div>
     <div class="chat-input-row">
         <input type="text" id="aiChatInput" placeholder="Ask about DeFi, blockchain, Arc testnet..." style="flex:1;"
@@ -536,7 +541,7 @@
         <button id="aiChatSendBtn" onclick="sendAIMessage()">SEND</button>
         <button onclick="clearAIChat()" style="border-color:#f55;color:#f55;">CLR</button>
     </div>
-    <div style="font-size:.72em;color:#0a0;margin-top:8px;">Powered by Claude · Context-aware of your wallet & network</div>
+    <div style="font-size:.72em;color:#0a0;margin-top:8px;">Powered by Claude · Context-aware of your wallet & network · Key stored locally only</div>
   </div>
 </div>
 
@@ -615,6 +620,27 @@ let ensLookupHistory = [];
 let ethPrice = null, btcPrice = null;
 let autoGMEnabled = false;
 let aiChatHistory = [];
+let claudeApiKey = localStorage.getItem('arc_claude_key') || '';
+
+function saveInlineApiKey() {
+    const k = document.getElementById('inlineApiKey').value.trim();
+    if (!k) return;
+    claudeApiKey = k;
+    localStorage.setItem('arc_claude_key', k);
+    document.getElementById('apiKeyBanner').style.display = 'none';
+    appendChatMsg('system', '✓ API key saved. You can now chat!');
+    playSuccess();
+}
+
+function refreshApiKeyBanner() {
+    const banner = document.getElementById('apiKeyBanner');
+    if (!banner) return;
+    if (claudeApiKey) {
+        banner.style.display = 'none';
+    } else {
+        banner.style.display = 'flex';
+    }
+}
 
 // ── VIBRATION ──
 function vibrate(p) { if (navigator.vibrate) navigator.vibrate(p); }
@@ -1141,6 +1167,12 @@ async function sendAIMessage() {
     const msg = input.value.trim();
     if (!msg) return;
 
+    if (!claudeApiKey) {
+        refreshApiKeyBanner();
+        appendChatMsg('system', '⚠ Enter your Anthropic API key above to enable AI chat.');
+        return;
+    }
+
     appendChatMsg('user', msg);
     input.value = '';
     const sendBtn = document.getElementById('aiChatSendBtn');
@@ -1151,6 +1183,7 @@ async function sendAIMessage() {
     thinkEl.className = 'chat-thinking';
     thinkEl.textContent = '🤖 ARC AI is thinking...';
     document.getElementById('aiChatFeed').appendChild(thinkEl);
+    document.getElementById('aiChatFeed').scrollTop = document.getElementById('aiChatFeed').scrollHeight;
 
     const systemPrompt = `You are ARC Neural Agent, an expert blockchain AI assistant with a cyberpunk personality. You help users with: Ethereum/EVM chains, DeFi protocols, smart contracts, token economics, gas optimization, security, and the Arc Testnet specifically.
 
@@ -1163,7 +1196,7 @@ Current operator context:
 - Level: ${level} (${xp} XP)
 - GM Streak: ${getGMStreak()} days
 
-Be concise, technical, and direct. Use crypto terminology naturally. Keep responses under 250 words unless the user asks for detail. Use ⚡ and 🤖 sparingly.`;
+Be concise, technical, and direct. Use crypto terminology naturally. Keep responses under 250 words unless the user asks for detail.`;
 
     aiChatHistory.push({ role: 'user', content: msg });
 
@@ -1172,7 +1205,9 @@ Be concise, technical, and direct. Use crypto terminology naturally. Keep respon
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'anthropic-version': '2023-06-01'
+                'x-api-key': claudeApiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
             },
             body: JSON.stringify({
                 model: 'claude-sonnet-4-6',
@@ -1186,6 +1221,12 @@ Be concise, technical, and direct. Use crypto terminology naturally. Keep respon
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
+            if (response.status === 401) {
+                claudeApiKey = '';
+                localStorage.removeItem('arc_claude_key');
+                refreshApiKeyBanner();
+                throw new Error('Invalid API key — please re-enter your key above.');
+            }
             throw new Error(err.error?.message || 'API Error ' + response.status);
         }
         const data = await response.json();
@@ -1195,7 +1236,7 @@ Be concise, technical, and direct. Use crypto terminology naturally. Keep respon
         gainXP(3); playSuccess();
     } catch(e) {
         thinkEl.remove();
-        appendChatMsg('system', '✕ Connection error: ' + e.message);
+        appendChatMsg('system', '✕ ' + e.message);
         playError();
     }
     sendBtn.disabled = false; sendBtn.textContent = 'SEND';
@@ -1277,20 +1318,15 @@ function watchNetwork() {
     });
 }
 
-// ── SEND GM (fixed: simple self-send with hex data) ──
+// ── SEND GM (plain zero-value self-send — maximally compatible) ──
 async function sendGM() {
     if (!isConnected || !signer) { log('Please connect wallet first', 'err'); return; }
     playClick();
     log('🌅 BROADCASTING GM ON-CHAIN...', 'gm');
     try {
-        const gmText = `GM! 🌅 Arc Testnet Operator ${addr(userAddress)} is online 🚀`;
-        const hexData = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(gmText));
-
         const tx = await signer.sendTransaction({
             to: userAddress,
-            value: ethers.utils.parseEther('0'),
-            data: hexData,
-            gasLimit: ethers.BigNumber.from('50000')
+            value: ethers.utils.parseEther('0')
         });
 
         log(`📡 TX SUBMITTED: ${shortHash(tx.hash)}`, 'ok');
@@ -1309,7 +1345,7 @@ async function sendGM() {
         await refreshBalance();
         gainXP(5);
         playSuccess();
-        speak("Good morning message sent on chain");
+        speak("Good morning sent on chain");
 
         if (autoGMEnabled) {
             localStorage.setItem('arc_auto_gm_last_' + userAddress, new Date().toDateString());
@@ -1607,7 +1643,7 @@ function processCmd(cmd, raw) {
         'leaderboard': () => { renderLeaderboard(); log('Leaderboard refreshed', 'ok'); },
         'stats':       () => openModal('statsModal', showWalletStats),
         'chart':       () => openAnalytics(),
-        'chat':        () => openModal('aiChatModal'),
+        'chat':        () => { openModal('aiChatModal'); setTimeout(refreshApiKeyBanner, 50); },
         'settings':    () => openModal('settingsModal'),
         'insight':     () => marketInsight(),
         'whoami':      () => { log(`🤖 ${addr(userAddress)} | Level ${level} | ${xp} XP | Streak: ${getGMStreak()}🔥`, 'ai'); speak("Identity confirmed"); },
